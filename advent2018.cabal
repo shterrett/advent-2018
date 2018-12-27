@@ -1,0 +1,62 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 5bcbbfb99cb066aa42e8a04355b61af0f14dcd571c26d1bdbf59ae51f374994c
+
+name:           advent2018
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/shterrett/advent2018#readme>
+homepage:       https://github.com/shterrett/advent2018#readme
+bug-reports:    https://github.com/shterrett/advent2018/issues
+author:         Stuart Terrett
+maintainer:     shterrett@gmail.com
+copyright:      Copyright 2018 Stuart Terrett
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/shterrett/advent2018
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_advent2018
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+  default-language: Haskell2010
+
+executable advent2018-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_advent2018
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      advent2018
+    , base >=4.7 && <5
+  default-language: Haskell2010
+
+test-suite advent2018-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_advent2018
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      advent2018
+    , base >=4.7 && <5
+  default-language: Haskell2010
