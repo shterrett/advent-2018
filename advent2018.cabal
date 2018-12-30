@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5bcbbfb99cb066aa42e8a04355b61af0f14dcd571c26d1bdbf59ae51f374994c
+-- hash: 855c7c1f9bde0e120fee06c97f45097a49ce704e272a53fb05706ea7f3aa49af
 
 name:           advent2018
 version:        0.1.0.0
@@ -27,13 +27,17 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Day1
   other-modules:
       Paths_advent2018
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
+    , parsec
+    , parsers
+    , text
+    , unordered-containers
   default-language: Haskell2010
 
 executable advent2018-exe
@@ -46,12 +50,17 @@ executable advent2018-exe
   build-depends:
       advent2018
     , base >=4.7 && <5
+    , parsec
+    , parsers
+    , text
+    , unordered-containers
   default-language: Haskell2010
 
 test-suite advent2018-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Day1Spec
       Paths_advent2018
   hs-source-dirs:
       test
@@ -59,4 +68,9 @@ test-suite advent2018-test
   build-depends:
       advent2018
     , base >=4.7 && <5
+    , hspec
+    , parsec
+    , parsers
+    , text
+    , unordered-containers
   default-language: Haskell2010

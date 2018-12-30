@@ -21,6 +21,10 @@ description:         Please see the README on GitHub at <https://github.com/shte
 
 dependencies:
 - base >= 4.7 && < 5
+- text
+- unordered-containers
+- parsec
+- parsers
 
 library:
   source-dirs: src
@@ -46,3 +50,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - advent2018
+    - hspec
