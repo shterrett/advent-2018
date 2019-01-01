@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Day1
+    , Day2
   other-modules:
       Paths_advent2018
   hs-source-dirs:
@@ -61,7 +62,8 @@ test-suite advent2018-test
   main-is: Spec.hs
   other-modules:
       Day1Spec
-      Paths_advent2018
+    , Day2Spec
+    , Paths_advent2018
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
