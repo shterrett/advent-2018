@@ -10,7 +10,7 @@ import Data.Time.Format
 import Data.Foldable (maximumBy)
 import Text.Parsec
 import Text.Parser.Token (integer)
-import Control.Arrow ((***))
+import Control.Arrow ((***), (&&&))
 
 type ElfId = Integer
 type Minute = Integer
@@ -99,3 +99,21 @@ day4 lines = either (T.pack . show) (T.pack . show) $
              eventGroups <$>
              sort <$>
              parseInput lines
+
+mostConsistentGuard :: HashMap ElfId (Minute, Integer) -> (ElfId, (Minute, Integer))
+mostConsistentGuard m = maximumBy minuteCount $ toList m
+  where minuteCount (_, (_, x)) (_, (_, y)) = compare x y
+
+maxSleptMinute :: Guards -> HashMap ElfId (Minute, Integer)
+maxSleptMinute = fmap ((maximumBy compareSnd) . toList)
+  where compareSnd (_, x) (_, y) = compare x y
+
+day4p2 :: [T.Text] -> T.Text
+day4p2 lines = either (T.pack . show) (T.pack . show) $
+               (uncurry (*) . (fst &&& (fst . snd))) <$>
+               mostConsistentGuard <$>
+               maxSleptMinute <$>
+               shiftData <$>
+               eventGroups <$>
+               sort <$>
+               parseInput lines
