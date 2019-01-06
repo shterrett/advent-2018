@@ -2,7 +2,7 @@ module Main where
 
 import qualified Data.Text.IO as Tio
 import qualified Data.Text as T
-import Day4
+import Day5
 
 main :: IO ()
-main = day4p2 <$> (T.lines <$> Tio.readFile "inputs/day-4") >>= Tio.putStrLn
+main = day5p2 . head <$> (T.lines <$> Tio.readFile "inputs/day-5") >>= Tio.putStrLn
