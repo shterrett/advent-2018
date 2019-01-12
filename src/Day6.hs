@@ -16,6 +16,7 @@ import Text.Parsec
 import Text.Parser.Token (integer)
 import Data.List (maximumBy, minimumBy)
 import Control.Arrow ((&&&))
+import Debug.Trace
 
 data Point = Point { x_coord :: Integer, y_coord :: Integer }
            deriving (Show, Eq, Generic, Hashable)
@@ -70,8 +71,9 @@ closestPoint (r:rs) p = foldr (cmpPoint p) (Single (dist r p) r) rs
               LT -> Single d refp
               EQ -> Tie d (refp:ps)
               GT -> o
-        dist :: Point -> Point -> Integer
-        dist (Point x1 y1) (Point x2 y2) = (abs $ x1 - x2) + (abs $ y1 - y2)
+
+dist :: Point -> Point -> Integer
+dist (Point x1 y1) (Point x2 y2) = (abs $ x1 - x2) + (abs $ y1 - y2)
 
 borderPoints :: (Point, Point) -> Field -> Border
 borderPoints ((Point xmin ymin), (Point xmax ymax)) =
@@ -120,3 +122,20 @@ day6 :: [T.Text] -> T.Text
 day6 lines = either (T.pack . show) (T.pack . show) $
              greatestArea <$>
              parseInput lines
+
+initialField :: Integer -> Point -> Field
+initialField b (Point x y) = pointsInBox (Point (x - b) (y - b), Point (x + b) (y + b))
+
+distToAllRefs :: RefPoints -> Point -> Integer
+distToAllRefs refs p = foldr (\r d -> (dist r p) + d) 0 refs
+
+pointsWithinBoundary :: Integer -> RefPoints -> Int
+pointsWithinBoundary b rs = length $
+                            filter (< b) $
+                            fmap (distToAllRefs rs) $
+                            initialField b (head rs)
+
+day6p2 :: [T.Text] -> T.Text
+day6p2 lines = either (T.pack . show) (T.pack . show) $
+                pointsWithinBoundary 10000 <$>
+                parseInput lines

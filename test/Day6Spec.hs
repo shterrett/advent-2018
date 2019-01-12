@@ -142,3 +142,21 @@ spec = do
                   , Point 8 9
                   ]
         greatestArea ref `shouldBe` 17
+    describe "distance to all refs" $ do
+      it "accumulates the distance from a point to all the reference points" $ do
+        let points = [ Point (-3) 4
+                     , Point 3 (-4)
+                     , Point (-3) (-4)
+                     , Point 3 4
+                     ]
+        distToAllRefs points (Point 1 1) `shouldBe` 7 + 7 + 9 + 5
+    describe "Region in boundary" $ do
+      it "returns the number of points within the boundary of _all_ reference points" $ do
+        let ref = [ Point 1 1
+                  , Point 1 6
+                  , Point 8 3
+                  , Point 3 4
+                  , Point 5 5
+                  , Point 8 9
+                  ]
+        pointsWithinBoundary 32 ref `shouldBe` 16
