@@ -3,6 +3,9 @@
 module Day8 where
 
 import qualified Data.Text as T
+import qualified Data.HashMap.Strict as Map
+import Data.HashMap.Strict (HashMap)
+import Data.Maybe (fromMaybe)
 import Text.Parsec
 import Text.Parser.Token (whiteSpace, integer)
 
@@ -51,3 +54,18 @@ day8 :: [T.Text] -> T.Text
 day8 input = either (T.pack . show) (T.pack . show) $
              sum . extractMetadata . fst . buildTree <$>
              parseInput input
+
+nodeValue :: Node -> Integer
+nodeValue (Node [] md) = sum md
+nodeValue (Node cs md) =
+    let
+      cm = Map.fromList $ zip [1..] cs
+    in
+      foldr (+) 0 $ fmap (nodeValue . findChild cm) md
+  where findChild :: HashMap Integer Node -> Integer -> Node
+        findChild m = fromMaybe (Node [] []) . (flip Map.lookup) m
+
+day8p2 :: [T.Text] -> T.Text
+day8p2 input = either (T.pack . show) (T.pack . show) $
+               nodeValue . fst . buildTree <$>
+               parseInput input
