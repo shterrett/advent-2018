@@ -34,6 +34,7 @@ library
     , Day5
     , Day6
     , Day7
+    , Day8
   other-modules:
       Paths_advent2018
   hs-source-dirs:
@@ -76,6 +77,7 @@ test-suite advent2018-test
     , Day5Spec
     , Day6Spec
     , Day7Spec
+    , Day8Spec
     , Paths_advent2018
   hs-source-dirs:
       test
