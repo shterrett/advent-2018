@@ -38,8 +38,8 @@ data SortState = SortState { graph :: Graph
                            , costFn :: Node -> Seconds
                            }
 
-initState :: Int -> Seconds -> [Edge] -> SortState
-initState wc base es =
+initState :: Int -> (Node -> Seconds) -> [Edge] -> SortState
+initState wc cf es =
     let
       graph = buildGraph es
       edgeCount = buildEdgeCount es
@@ -51,7 +51,7 @@ initState wc base es =
                  , reversedSort = []
                  , workers = workers
                  , nextStart = 0
-                 , costFn = taskDuration base
+                 , costFn = cf
                  }
 
 findSources :: Graph -> HashMap Node Integer -> [Node]
@@ -127,7 +127,7 @@ updateHeap s =
 day7 :: [T.Text] -> T.Text
 day7 lines = either (T.pack . show) T.pack $
               topologicalSort <$>
-              initState 1 0 <$>
+              initState 1 (const 0) <$>
               parseInput lines
 
 taskDuration :: Seconds -> Node -> Seconds
@@ -140,5 +140,5 @@ workTasks s = maximumBy compare $ workers $ doSort s
 day7p2 :: Int -> Seconds -> [T.Text] -> T.Text
 day7p2 wc base lines = either (T.pack . show) (T.pack . show) $
                         workTasks <$>
-                        initState wc base <$>
+                        initState wc (taskDuration base) <$>
                         parseInput lines

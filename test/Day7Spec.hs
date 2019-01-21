@@ -76,28 +76,28 @@ spec = do
           ['C']
     -- Modifications to the ordering of a node make the topological sort
     -- fail for part 2
-    -- describe "topographical sort" $ do
-    --   it "produces a valid topographical ordering of the graph" $ do
-    --     let edges = [ ('C', 'A')
-    --                 , ('C', 'F')
-    --                 , ('A', 'B')
-    --                 , ('A', 'D')
-    --                 , ('B', 'E')
-    --                 , ('D', 'E')
-    --                 , ('F', 'E')
-    --                 ]
-    --     topologicalSort (initState 1 0 edges) `shouldBe` "CABDFE"
-    -- describe "day7" $ do
-    --   it "returns the topological sort of the graph" $ do
-    --     let input = [ "Step C must be finished before step A can begin."
-    --                 , "Step C must be finished before step F can begin."
-    --                 , "Step A must be finished before step B can begin."
-    --                 , "Step A must be finished before step D can begin."
-    --                 , "Step B must be finished before step E can begin."
-    --                 , "Step D must be finished before step E can begin."
-    --                 , "Step F must be finished before step E can begin."
-    --                 ]
-    --     day7 input `shouldBe` "CABDFE"
+    describe "topographical sort" $ do
+      it "produces a valid topographical ordering of the graph" $ do
+        let edges = [ ('C', 'A')
+                    , ('C', 'F')
+                    , ('A', 'B')
+                    , ('A', 'D')
+                    , ('B', 'E')
+                    , ('D', 'E')
+                    , ('F', 'E')
+                    ]
+        topologicalSort (initState 1 (const 0) edges) `shouldBe` "CABDFE"
+    describe "day7" $ do
+      it "returns the topological sort of the graph" $ do
+        let input = [ "Step C must be finished before step A can begin."
+                    , "Step C must be finished before step F can begin."
+                    , "Step A must be finished before step B can begin."
+                    , "Step A must be finished before step D can begin."
+                    , "Step B must be finished before step E can begin."
+                    , "Step D must be finished before step E can begin."
+                    , "Step F must be finished before step E can begin."
+                    ]
+        day7 input `shouldBe` "CABDFE"
     describe "day7p2" $ do
       it "returns the total time it takes multiple workers to complete the steps" $ do
         let input = [ "Step C must be finished before step A can begin."
