@@ -6,27 +6,40 @@ import qualified Data.Text as T
 import Text.Parsec
 import Text.Parser.Token (whiteSpace, integer)
 
-type Nodes = [Integer]
 type Metadata = [Integer]
+data Node = Node { children :: [Node]
+                 , metadata :: [Integer]
+                 }
+                 deriving (Show, Eq)
 
 parseInput :: [T.Text] -> Either ParseError [Integer]
 parseInput = (parse listOfInts "") . T.unpack . head
 
-listOfInts :: Parsec String () Nodes
+listOfInts :: Parsec String () [Integer]
 listOfInts = many (whiteSpace >> integer)
 
-extractMetadata :: Nodes -> Metadata
-extractMetadata = fst . processMetadata . (,) []
+extractMetadata :: Node -> Metadata
+extractMetadata (Node [] m) = m
+extractMetadata (Node ns m) = m ++ (foldr (++) [] $ extractMetadata <$> ns)
 
-processMetadata :: (Metadata, Nodes) -> (Metadata, Nodes)
-processMetadata (md, (nodeC:metaC:ns))
-  | nodeC == 0 = (md ++ take' metaC ns, drop' metaC ns)
-  | otherwise =
-    let
-      (md', ns') = (processNodes nodeC) (md, ns)
+buildTree :: [Integer] -> (Node, [Integer])
+buildTree (nodeC:metaC:ds)
+  | nodeC == 0 = (Node [] (take' metaC ds), drop' metaC ds)
+  | otherwise = let
+    (ns, ds') = buildChildren nodeC ds
     in
-      (md' ++ take' metaC ns', drop' metaC ns')
-  where processNodes c = foldr (.) id $ take' c (repeat processMetadata)
+      (Node ns (take' metaC ds'), drop' metaC ds')
+  where buildChildren :: Integer -> [Integer] -> ([Node], [Integer])
+        buildChildren nc ds = processChildren (take' nc $ repeat buildTree) ds
+
+processChildren :: [[a] -> (b, [a])] -> [a] -> ([b], [a])
+processChildren (f:[]) as = let (b', as') = f as in ([b'], as')
+processChildren (f:fs) as =
+    let
+      (b', as') = f as
+      (bs, as'') = processChildren fs as'
+    in
+      (b':bs, as'')
 
 take' :: Integer -> [a] -> [a]
 take' i = take (fromIntegral i)
@@ -36,5 +49,5 @@ drop' i = drop (fromIntegral i)
 
 day8 :: [T.Text] -> T.Text
 day8 input = either (T.pack . show) (T.pack . show) $
-             sum . extractMetadata <$>
+             sum . extractMetadata . fst . buildTree <$>
              parseInput input
