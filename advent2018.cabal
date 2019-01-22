@@ -35,6 +35,7 @@ library
     , Day6
     , Day7
     , Day8
+    , Day9
   other-modules:
       Paths_advent2018
   hs-source-dirs:
@@ -45,6 +46,7 @@ library
     , parsers
     , text
     , unordered-containers
+    , containers
     , hashable
     , time
     , heap
@@ -78,6 +80,7 @@ test-suite advent2018-test
     , Day6Spec
     , Day7Spec
     , Day8Spec
+    , Day9Spec
     , Paths_advent2018
   hs-source-dirs:
       test
@@ -90,4 +93,5 @@ test-suite advent2018-test
     , parsers
     , text
     , unordered-containers
+    , containers
   default-language: Haskell2010
