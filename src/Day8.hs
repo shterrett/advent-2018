@@ -6,8 +6,9 @@ import qualified Data.Text as T
 import qualified Data.HashMap.Strict as Map
 import Data.HashMap.Strict (HashMap)
 import Data.Maybe (fromMaybe)
-import Text.Parsec
+import Text.Parsec hiding (State)
 import Text.Parser.Token (whiteSpace, integer)
+import Control.Monad.State.Lazy
 
 type Metadata = [Integer]
 data Node = Node { children :: [Node]
@@ -25,6 +26,9 @@ extractMetadata :: Node -> Metadata
 extractMetadata (Node [] m) = m
 extractMetadata (Node ns m) = m ++ (foldr (++) [] $ extractMetadata <$> ns)
 
+buildTree' :: State [Integer] Node
+buildTree' = state buildTree
+
 buildTree :: [Integer] -> (Node, [Integer])
 buildTree (nodeC:metaC:ds)
   | nodeC == 0 = (Node [] (take' metaC ds), drop' metaC ds)
@@ -32,17 +36,9 @@ buildTree (nodeC:metaC:ds)
     (ns, ds') = buildChildren nodeC ds
     in
       (Node ns (take' metaC ds'), drop' metaC ds')
-  where buildChildren :: Integer -> [Integer] -> ([Node], [Integer])
-        buildChildren nc ds = processChildren (take' nc $ repeat buildTree) ds
 
-processChildren :: [[a] -> (b, [a])] -> [a] -> ([b], [a])
-processChildren (f:[]) as = let (b', as') = f as in ([b'], as')
-processChildren (f:fs) as =
-    let
-      (b', as') = f as
-      (bs, as'') = processChildren fs as'
-    in
-      (b':bs, as'')
+buildChildren :: Integer -> [Integer] -> ([Node], [Integer])
+buildChildren nodeC = runState (replicateM (fromIntegral nodeC) buildTree')
 
 take' :: Integer -> [a] -> [a]
 take' i = take (fromIntegral i)
@@ -52,7 +48,7 @@ drop' i = drop (fromIntegral i)
 
 day8 :: [T.Text] -> T.Text
 day8 input = either (T.pack . show) (T.pack . show) $
-             sum . extractMetadata . fst . buildTree <$>
+             sum . extractMetadata . evalState buildTree' <$>
              parseInput input
 
 nodeValue :: Node -> Integer
@@ -67,5 +63,5 @@ nodeValue (Node cs md) =
 
 day8p2 :: [T.Text] -> T.Text
 day8p2 input = either (T.pack . show) (T.pack . show) $
-               nodeValue . fst . buildTree <$>
+               nodeValue . evalState buildTree' <$>
                parseInput input

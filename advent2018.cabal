@@ -50,6 +50,7 @@ library
     , hashable
     , time
     , heap
+    , mtl
   default-language: Haskell2010
 
 executable advent2018-exe
