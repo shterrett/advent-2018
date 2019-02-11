@@ -10,7 +10,7 @@ import Day12
 spec :: Spec
 spec = do
     describe "parsing input" $ do
-      it "parses the list of pots into a list of chars" $ do
+      it "parses the list of pots into a list of chars and potentially extends" $ do
         let input = ["initial state: #..#.#..##......###...###"
                     , ""
                     , "...## => #"
@@ -18,7 +18,7 @@ spec = do
                     , ".#... => #"
                     , ".#.#. => #"
                     ]
-        snd <$> parseInput input `shouldBe` (Right "#..#.#..##......###...###")
+        pots <$> parseInput input `shouldBe` (Right ".....#..#.#..##......###...###.....")
     describe "windows" $ do
       it "returns a list of windows of the given length with step size 1" $ do
         let l = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -52,8 +52,31 @@ spec = do
                       ]
           `shouldBe` "#.#.#"
     describe "augment pots" $ do
-      it "adds two pots to the beginning and two to the end os the given pots are always considered" $ do
-        augmentPots "#......#" `shouldBe` "..#......#.."
+      it "adds two pots to the beginning and two to the end so the given pots are always considered" $ do
+        augmentPots 2 "#......#" `shouldBe` "..#......#.."
     describe "sumPlantBearing" $ do
       it "returns the sum of the index of the plant-bearing pots, remembering to account for the extra 2 on each end" $ do
-        sumPlantBearing ".#....##....#####...#######....#.#..##." `shouldBe` 325
+        let game = Game ".#....##....#####...#######....#.#..##." 
+                        Map.empty
+                        32
+        sumPlantBearing game `shouldBe` 325
+    describe "simulate" $ do
+      it "carries out the simulation a given number of times" $ do
+        let pots = "#..#.#..##......###...###"
+        let rules = Map.fromList [ ("...##", '#')
+                                 , ("..#..", '#')
+                                 , (".#...", '#')
+                                 , (".#.#.", '#')
+                                 , (".#.##", '#')
+                                 , (".##..", '#')
+                                 , (".####", '#')
+                                 , ("#.#.#", '#')
+                                 , ("#.###", '#')
+                                 , ("##.#.", '#')
+                                 , ("##.##", '#')
+                                 , ("###..", '#')
+                                 , ("###.#", '#')
+                                 , ("####.", '#')
+                                 ]
+        let game = buildGame pots rules
+        sumPlantBearing (simulate 20 game) `shouldBe` 325
