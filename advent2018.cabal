@@ -39,6 +39,7 @@ library
     , Day10
     , Day11
     , Day12
+    , Day13
   other-modules:
       Paths_advent2018
   hs-source-dirs:
@@ -88,6 +89,7 @@ test-suite advent2018-test
     , Day10Spec
     , Day11Spec
     , Day12Spec
+    , Day13Spec
     , Paths_advent2018
   hs-source-dirs:
       test
@@ -101,4 +103,5 @@ test-suite advent2018-test
     , text
     , unordered-containers
     , containers
+    , heap
   default-language: Haskell2010
