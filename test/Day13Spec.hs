@@ -45,46 +45,46 @@ spec = do
                        ]
       it "creates a heap of cars" $ do
         cars (parseInput input) `shouldBe`
-          (Heap.fromAscList [ Car (2, 0) PosX RightTurn
-                            , Car (0, 1) NegY RightTurn
-                            , Car (5, 2) PosY RightTurn
-                            , Car (3, 3) NegX RightTurn
+          (Heap.fromAscList [ Car (2, 0) PosX LeftTurn
+                            , Car (0, 1) NegY LeftTurn
+                            , Car (5, 2) PosY LeftTurn
+                            , Car (3, 3) NegX LeftTurn
                             ] :: Heap.MinHeap Car)
     describe "updateCar" $ do
       it "continues in the direction of travel on a straightaway" $ do
-        let car = Car (3, 5) PosX RightTurn
+        let car = Car (3, 5) PosX LeftTurn
         let ps = Map.fromList [((3, 5), Horizontal)]
         updateCar ps car `shouldBe`
-          (Car (4, 5) PosX RightTurn)
-        let car' = Car (3, 5) NegY RightTurn
+          (Car (4, 5) PosX LeftTurn)
+        let car' = Car (3, 5) NegY LeftTurn
         let ps' = Map.fromList [((3, 5), Vertical)]
         updateCar ps' car' `shouldBe`
-          (Car (3, 4) NegY RightTurn)
+          (Car (3, 4) NegY LeftTurn)
       it "makes a negative turn" $ do
-        let car = Car (3, 5) PosX RightTurn
+        let car = Car (3, 5) PosX LeftTurn
         let ps = Map.fromList [((3, 5), NTurn)]
         updateCar ps car `shouldBe`
-          (Car (3, 4) NegY RightTurn)
+          (Car (3, 4) NegY LeftTurn)
       it "makes a positive turn" $ do
-        let car = Car (3, 5) NegY RightTurn
+        let car = Car (3, 5) NegY LeftTurn
         let ps = Map.fromList [((3, 5), PTurn)]
         updateCar ps car `shouldBe`
-          (Car (2, 5) NegX RightTurn)
+          (Car (2, 5) NegX LeftTurn)
       it "turns left after turning right at a previous intersection" $ do
-        let car = Car (3, 5) PosX RightTurn
-        let ps = Map.fromList [((3, 5), Intersection)]
-        updateCar ps car `shouldBe`
-          (Car (3, 4) NegY LeftTurn)
-      it "goes straight after turning left at a previous intersection" $ do
-        let car = Car (3, 5) NegY LeftTurn
+        let car = Car (3, 5) PosX LeftTurn
         let ps = Map.fromList [((3, 5), Intersection)]
         updateCar ps car `shouldBe`
           (Car (3, 4) NegY Straight)
-      it "turns right after going straight at a previous intersection" $ do
-        let car = Car (3, 5) NegX Straight
+      it "goes straight after turning left at a previous intersection" $ do
+        let car = Car (3, 5) NegY Straight
         let ps = Map.fromList [((3, 5), Intersection)]
         updateCar ps car `shouldBe`
           (Car (3, 4) NegY RightTurn)
+      it "turns right after going straight at a previous intersection" $ do
+        let car = Car (3, 5) NegX RightTurn
+        let ps = Map.fromList [((3, 5), Intersection)]
+        updateCar ps car `shouldBe`
+          (Car (3, 4) NegY LeftTurn)
     describe "moveCar" $ do
       it "returns Left Point when a collision occurs" $ do
         let car = Car (3, 5) NegX Straight
@@ -109,3 +109,14 @@ spec = do
                     , "  \\------/   "
                     ]
         day13 input `shouldBe` "(7,3)"
+    describe "day13p2" $ do
+      it "returns the point that the last suriving car reaches" $ do
+        let input = [ "/>-<\\  "
+                    , "|   |  "
+                    , "| /<+-\\"
+                    , "| | | v"
+                    , "\\>+</ |"
+                    , "  |   ^"
+                    , "  \\<->/"
+                    ]
+        day13p2 input `shouldBe` "(6,4)"

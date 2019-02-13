@@ -5,4 +5,4 @@ import qualified Data.Text as T
 import Day13
 
 main :: IO ()
-main = day13 <$> T.lines <$> Tio.readFile "inputs/day-13" >>= Tio.putStrLn
+main = day13p2 <$> T.lines <$> Tio.readFile "inputs/day-13" >>= Tio.putStrLn

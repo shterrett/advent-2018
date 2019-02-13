@@ -3,8 +3,9 @@
 
 module Day13 where
 
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Tuple (swap)
+import Data.List (foldl')
 import qualified Data.Text as T
 import qualified Data.HashMap.Strict as Map
 import Data.HashMap.Strict (HashMap)
@@ -33,7 +34,7 @@ data Turn = LeftTurn
           deriving (Show, Eq)
 data Car = Car { position :: Point
                , heading :: Direction
-               , lastTurn :: Turn
+               , nextTurn :: Turn
                }
                deriving (Show, Eq)
 
@@ -87,10 +88,10 @@ buildCar (_, '/') = Nothing
 buildCar (_, '\\') = Nothing
 buildCar (_, '+') = Nothing
 buildCar (_, ' ') = Nothing
-buildCar (p, '>') = Just $ Car p PosX RightTurn
-buildCar (p, '<') = Just $ Car p NegX RightTurn
-buildCar (p, 'v') = Just $ Car p PosY RightTurn
-buildCar (p, '^') = Just $ Car p NegY RightTurn
+buildCar (p, '>') = Just $ Car p PosX LeftTurn
+buildCar (p, '<') = Just $ Car p NegX LeftTurn
+buildCar (p, 'v') = Just $ Car p PosY LeftTurn
+buildCar (p, '^') = Just $ Car p NegY LeftTurn
 
 notEmpty :: (Point, SegmentClass) -> Bool
 notEmpty (_, Empty) = False
@@ -120,33 +121,82 @@ updateCar :: HashMap Point SegmentClass -> Car -> Car
 updateCar ps c@(Car p _ _) = case Map.lookup p ps of
                                 Nothing -> undefined
                                 Just sc -> update sc c
-  where update Horizontal (Car (x, y) PosX lt) = Car (x + 1, y) PosX lt
-        update Horizontal (Car (x, y) NegX lt) = Car (x - 1, y) NegX lt
-        update Vertical (Car (x, y) PosY lt) = Car (x, y + 1) PosY lt
-        update Vertical (Car (x, y) NegY lt) = Car (x, y - 1) NegY lt
-        update PTurn (Car (x, y) PosX lt) = Car (x, y + 1) PosY lt
-        update PTurn (Car (x, y) PosY lt) = Car (x + 1, y) PosX lt
-        update PTurn (Car (x, y) NegX lt) = Car (x, y - 1) NegY lt
-        update PTurn (Car (x, y) NegY lt) = Car (x - 1, y) NegX lt
-        update NTurn (Car (x, y) PosX lt) = Car (x, y - 1) NegY lt
-        update NTurn (Car (x, y) PosY lt) = Car (x - 1, y) NegX lt
-        update NTurn (Car (x, y) NegX lt) = Car (x, y + 1) PosY lt
-        update NTurn (Car (x, y) NegY lt) = Car (x + 1, y) PosX lt
-        update Intersection (Car (x, y) PosX RightTurn) = Car (x, y - 1) NegY LeftTurn
-        update Intersection (Car (x, y) PosX LeftTurn) = Car (x + 1, y) PosX Straight
-        update Intersection (Car (x, y) PosX Straight) = Car (x, y + 1) PosY RightTurn
-        update Intersection (Car (x, y) NegX RightTurn) = Car (x, y + 1) PosY LeftTurn
-        update Intersection (Car (x, y) NegX LeftTurn) = Car (x - 1, y) NegX Straight
-        update Intersection (Car (x, y) NegX Straight) = Car (x, y - 1) NegY RightTurn
-        update Intersection (Car (x, y) PosY RightTurn) = Car (x + 1, y) PosX LeftTurn
-        update Intersection (Car (x, y) PosY LeftTurn) = Car (x, y + 1) PosY Straight
-        update Intersection (Car (x, y) PosY Straight) = Car (x - 1, y) NegX RightTurn
+  where update Horizontal (Car (x, y) PosX nt) = Car (x + 1, y) PosX nt
+        update Horizontal (Car (x, y) NegX nt) = Car (x - 1, y) NegX nt
+        update Vertical (Car (x, y) PosY nt) = Car (x, y + 1) PosY nt
+        update Vertical (Car (x, y) NegY nt) = Car (x, y - 1) NegY nt
+        update PTurn (Car (x, y) PosX nt) = Car (x, y + 1) PosY nt
+        update PTurn (Car (x, y) PosY nt) = Car (x + 1, y) PosX nt
+        update PTurn (Car (x, y) NegX nt) = Car (x, y - 1) NegY nt
+        update PTurn (Car (x, y) NegY nt) = Car (x - 1, y) NegX nt
+        update NTurn (Car (x, y) PosX nt) = Car (x, y - 1) NegY nt
+        update NTurn (Car (x, y) PosY nt) = Car (x - 1, y) NegX nt
+        update NTurn (Car (x, y) NegX nt) = Car (x, y + 1) PosY nt
+        update NTurn (Car (x, y) NegY nt) = Car (x + 1, y) PosX nt
+        update Intersection (Car (x, y) PosX LeftTurn) = Car (x, y - 1) NegY Straight
+        update Intersection (Car (x, y) PosX Straight) = Car (x + 1, y) PosX RightTurn
+        update Intersection (Car (x, y) PosX RightTurn) = Car (x, y + 1) PosY LeftTurn
+        update Intersection (Car (x, y) NegX LeftTurn) = Car (x, y + 1) PosY Straight
+        update Intersection (Car (x, y) NegX Straight) = Car (x - 1, y) NegX RightTurn
+        update Intersection (Car (x, y) NegX RightTurn) = Car (x, y - 1) NegY LeftTurn
+        update Intersection (Car (x, y) PosY LeftTurn) = Car (x + 1, y) PosX Straight
+        update Intersection (Car (x, y) PosY Straight) = Car (x, y + 1) PosY RightTurn
+        update Intersection (Car (x, y) PosY RightTurn) = Car (x - 1, y) NegX LeftTurn
+        update Intersection (Car (x, y) NegY LeftTurn) = Car (x - 1, y) NegX Straight
+        update Intersection (Car (x, y) NegY Straight) = Car (x, y - 1) NegY RightTurn
         update Intersection (Car (x, y) NegY RightTurn) = Car (x + 1, y) PosX LeftTurn
-        update Intersection (Car (x, y) NegY LeftTurn) = Car (x, y - 1) NegY Straight
-        update Intersection (Car (x, y) NegY Straight) = Car (x + 1, y) PosX RightTurn
 
 day13 :: [T.Text] -> T.Text
 day13 lines = case tick (parseInput lines) of
                 Left p -> T.pack $ show p
                 Right _ -> "Something has gone terribly wrong"
 
+tick' :: (Tracks, HashSet Point) -> (Tracks, HashSet Point)
+tick' (ts, ps) =
+    let
+      cs = Heap.toAscList $ cars ts
+      ts' = ts { cars = Heap.empty }
+    in
+      case cs of
+        [c] -> (ts' { cars = Heap.singleton c }
+               , Set.empty)
+        cs' -> tick' $ moveAllCars (ts', Set.empty) cs'
+
+moveAllCars :: (Tracks, HashSet Point) -> [Car] -> (Tracks, HashSet Point)
+moveAllCars tp [] = tp
+moveAllCars tp (c:cs) =
+    let
+      (ts, ps) = moveCar' tp c
+    in
+      moveAllCars (ts, ps) $ filter (uncrashed ps) cs
+
+uncrashed :: HashSet Point -> Car -> Bool
+uncrashed ps = (not . (flip Set.member) ps) . position
+
+moveCar' :: (Tracks, HashSet Point) -> Car -> (Tracks, HashSet Point)
+moveCar' (ts, ps) c =
+    let
+      occ = Set.delete (position c) (occupied ts)
+      c' = updateCar (segments ts) c
+      ps' = Set.insert (position c') ps
+    in
+      if Set.member (position c') occ
+        then ( ts { occupied = Set.delete (position c') occ
+                  , cars = Heap.filter (uncrashed ps') (cars ts)
+                  }
+             , ps')
+        else ( ts { occupied = Set.insert (position c') occ
+                  , cars = Heap.insert c' (cars ts)
+                  }
+             , ps)
+
+day13p2 :: [T.Text] -> T.Text
+day13p2 lines = fromMaybe "Something has gone terribly wrong" .
+                (fmap $ T.pack . show . position) .
+                Heap.viewHead .
+                cars .
+                fst .
+                tick' .
+                (,Set.empty) .
+                parseInput $
+                lines
