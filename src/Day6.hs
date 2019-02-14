@@ -16,7 +16,6 @@ import Text.Parsec
 import Text.Parser.Token (integer)
 import Data.List (maximumBy, minimumBy)
 import Control.Arrow ((&&&))
-import Debug.Trace
 
 data Point = Point { x_coord :: Integer, y_coord :: Integer }
            deriving (Show, Eq, Generic, Hashable)
@@ -123,9 +122,6 @@ day6 lines = either (T.pack . show) (T.pack . show) $
              greatestArea <$>
              parseInput lines
 
-initialField :: Integer -> Point -> Field
-initialField b (Point x y) = pointsInBox (Point (x - b) (y - b), Point (x + b) (y + b))
-
 distToAllRefs :: RefPoints -> Point -> Integer
 distToAllRefs refs p = foldr (\r d -> (dist r p) + d) 0 refs
 
@@ -133,7 +129,8 @@ pointsWithinBoundary :: Integer -> RefPoints -> Int
 pointsWithinBoundary b rs = length $
                             filter (< b) $
                             fmap (distToAllRefs rs) $
-                            initialField b (head rs)
+                            pointsInBox $
+                            boundingBox rs
 
 day6p2 :: [T.Text] -> T.Text
 day6p2 lines = either (T.pack . show) (T.pack . show) $
