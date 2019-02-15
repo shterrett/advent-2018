@@ -43,3 +43,7 @@ spec = do
       it "returns the (x,y) coordinates of the top left corner of the grid with the highest power" $ do
         day11 18 `shouldBe` (33, 45)
         day11 42 `shouldBe` (21, 61)
+    describe "day11p2" $ do
+      it "returns the (size, (x, y)) coordinates of the top left corner of the grid with highest power" $ do
+        day11p2 18 `shouldBe` (16, (90, 269))
+        day11p2 42 `shouldBe` (12, (232, 251))

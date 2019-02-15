@@ -4,9 +4,11 @@
 module Day11 where
 
 import qualified Data.Text as T
+import Data.Maybe (fromJust)
+import Data.Bifunctor (first, second)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as Map
-import Data.List (foldl')
+import Data.List (foldl', maximumBy)
 import Control.Arrow ((&&&))
 import Control.Monad (foldM)
 import Control.Monad.Writer.Lazy (writer)
@@ -15,7 +17,8 @@ type Power = Integer
 type SerialNo = Integer
 type Size = Integer
 type Point = (Integer, Integer)
-type Cells = HashMap (Integer, Point) Integer
+type Dim = (Integer, Integer)
+type Cells = HashMap (Dim, Point) Integer
 
 data Problem = Problem { serialNo :: Integer
                        , size :: Integer
@@ -32,62 +35,68 @@ instance Ord GridResult where
     compare g1 g2 = compare (power g1) (power g2)
 
 gridPower :: Problem -> Cells -> Point -> (Cells, Power)
-gridPower pb@(Problem sn 1) cells pt = lookupOrCalculate pb cells pt (calculatePower sn)
-gridPower pb@(Problem sn sz) cells pt | odd sz = lookupOrCalculate pb cells pt (recurLeadingEdge pb cells)
-                                      | otherwise = lookupOrCalculate pb cells pt (recurBox pb cells)
+gridPower pb@(Problem sn 1) cells pt = lookupOrCalculate pb cells pt (calculatePower sn cells)
+gridPower pb@(Problem sn sz) cells pt = lookupOrCalculate pb cells pt (recurLeadingEdge pb cells)
 
-lookupOrCalculate :: Problem -> Cells -> Point -> (Point -> Power) -> (Cells, Power)
-lookupOrCalculate (Problem sn sz) cells pt calc = case Map.lookup (sz, pt) cells of
+lookupOrCalculate :: Problem -> Cells -> Point -> (Point -> (Cells, Power)) -> (Cells, Power)
+lookupOrCalculate (Problem sn sz) cells pt calc = case Map.lookup ((sz, sz), pt) cells of
                                                       Just power -> (cells, power)
-                                                      Nothing -> cachePower sz cells pt $ calc pt
+                                                      Nothing -> cachePower (sz, sz) pt $ calc pt
 
-calculatePower :: SerialNo -> Point -> Power
-calculatePower sn (x, y) = hundredsDigit (nonsense sn x y) - 5
+calculatePower :: SerialNo -> Cells -> Point -> (Cells, Power)
+calculatePower sn cells (x, y) = (cells, hundredsDigit (nonsense sn x y) - 5)
   where nonsense sn x y = (((x + 10) * y) + sn) * (x + 10)
         hundredsDigit n = mod (div n 100) 10
 
-cachePower :: Size -> Cells -> Point -> Power -> (Cells, Power)
-cachePower sz cells pt = insertCache (sz, pt) cells &&& id
+cachePower :: Dim -> Point -> (Cells, Power) -> (Cells, Power)
+cachePower dim pt (cells, pwr) = insertCache (dim, pt) cells &&& id $ pwr
   where insertCache p cells = flip (Map.insert p) cells
 
-recurLeadingEdge :: Problem -> Cells -> Point -> Power
-recurLeadingEdge pb@(Problem sn sz) cells pt = (leadingEdge pb cells pt) +
-                                          (snd $ gridPower (Problem sn (sz - 1))
-                                                           cells
-                                                           pt)
-  where leadingEdge :: Problem -> Cells -> Point -> Power
+recurLeadingEdge :: Problem -> Cells -> Point -> (Cells, Power)
+recurLeadingEdge pb@(Problem sn sz) cells pt =
+  let
+    (cells', edgePower) = leadingEdge pb cells pt
+  in
+    ( cells'
+    , (fromJust $ Map.lookup ((sz - 1, sz - 1), pt) cells') + edgePower
+    )
+  where leadingEdge :: Problem -> Cells -> Point -> (Cells, Power)
         leadingEdge (Problem sn sz) cells (x, y) =
           let
             xMax = (x + sz - 1)
             yMax = (y + sz - 1)
-            xRange = [x..xMax]
-            yRange = [y..(yMax - 1)] -- don't double count the corner
-            forwardEdge = (xMax,) <$> yRange
-            bottomEdge = (, yMax) <$> xRange
+            bottomEdgeKey = ((sz - 1, 1), (x, yMax))
+            bottomEdgePower = fromJust $ Map.lookup bottomEdgeKey cells
+            forwardEdgeKey = ((1, sz - 1 ), (xMax, y))
+            forwardEdgePower = fromJust $ Map.lookup forwardEdgeKey cells
+            cornerKey = ((1, 1), (xMax, yMax))
+            cornerPower = fromJust $ Map.lookup cornerKey cells
+            cells' = Map.insert (first (first (+1)) bottomEdgeKey) (bottomEdgePower + cornerPower) $
+                     Map.insert (first (second (+1)) forwardEdgeKey) (forwardEdgePower + cornerPower) $
+                     cells
           in
-            sum $
-            snd <$>
-            gridPower (Problem sn 1) cells <$>
-            (forwardEdge ++ bottomEdge)
-
-recurBox :: Problem -> Cells -> Point -> Power
-recurBox (Problem sn sz) cells (x, y) =
-    let
-      delta = div sz 2
-      corners = [(x, y), (x + delta, y), (x, y + delta), (x + delta, y + delta)]
-    in
-      sum $ snd . (gridPower (Problem sn delta) cells) <$> corners
+            ( cells'
+            , bottomEdgePower + forwardEdgePower + cornerPower
+            )
 
 corners :: Size -> [Point]
 corners sz =
     let maxBound = 300 - sz + 1
-    in (,) <$> [1..maxBound] <*> [1..maxBound]
+    in tail $ (,) <$> [1..maxBound] <*> [1..maxBound]
 
 sizes :: [Size]
 sizes = [1..300]
 
 day11 :: SerialNo -> Point
-day11 sn = corner . snd $ problemMax (Problem sn 3) Map.empty
+day11 sn =
+    let
+      initial =  problemMax (Problem sn 1) Map.empty
+      (cells, _) = foldl' fillCells initial (Problem sn <$> [2, 3])
+    in
+      snd . fst $ maximumBy power $ filter threeByThree $ Map.toList cells
+    where threeByThree = (== (3, 3)) . fst . fst
+          power (_, p1) (_, p2) = compare p1 p2
+          fillCells (cells, _) pb = problemMax pb cells
 
 day11p2 :: SerialNo -> (Size, Point)
 day11p2 sn =
@@ -106,11 +115,10 @@ day11p2 sn =
 problemMax :: Problem -> Cells -> (Cells, GridResult)
 problemMax pb cells =
     let
-      cs = corners (size pb)
-      initial = GridResult (head cs) (size pb) <$>
-                gridPower pb cells (head cs)
+      initial = GridResult (1, 1) (size pb) <$>
+                gridPower pb cells (1, 1)
     in
-      foldl' (maxPower pb) initial (tail cs)
+      foldl' (maxPower pb) initial (corners $ size pb)
   where maxPower :: Problem -> (Cells, GridResult) -> Point -> (Cells, GridResult)
         maxPower pb (cells, gr) pt =
           let
