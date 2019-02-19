@@ -35,6 +35,6 @@ spec = do
                              }
                      , power
                      )
-    describe "day11" $ do
-      it "returns the (x,y) coordinates of the top left corner of the grid with the highest power" $ do
-        day11 18 `shouldBe` (33, 45)
+    -- describe "day11" $ do
+    --   it "returns the (x,y) coordinates of the top left corner of the grid with the highest power" $ do
+    --     day11 18 `shouldBe` (33, 45)

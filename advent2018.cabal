@@ -40,6 +40,7 @@ library
     , Day11
     , Day12
     , Day13
+    , Day14
   other-modules:
       Paths_advent2018
   hs-source-dirs:
@@ -90,6 +91,7 @@ test-suite advent2018-test
     , Day11Spec
     , Day12Spec
     , Day13Spec
+    , Day14Spec
     , Paths_advent2018
   hs-source-dirs:
       test
