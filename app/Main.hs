@@ -6,4 +6,4 @@ import Day11
 
 main :: IO ()
 -- main = day6p2 <$> T.lines <$> Tio.readFile "inputs/day-6" >>= Tio.putStrLn
-main = putStrLn . show $ day11 18
+main = putStrLn . show $ day11p2 18

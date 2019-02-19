@@ -3,15 +3,16 @@
 
 module Day11 where
 
+import Prelude hiding (lookup)
 import qualified Data.Text as T
 import Data.Maybe (fromJust)
-import Data.Bifunctor (first, second)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as Map
 import Data.List (foldl', maximumBy)
 import Control.Arrow ((&&&))
 import Control.Monad (foldM)
 import Control.Monad.Writer.Lazy (writer)
+import Debug.Trace
 
 type Power = Integer
 type SerialNo = Integer
@@ -19,6 +20,11 @@ type Size = Integer
 type Point = (Integer, Integer)
 type Dim = (Integer, Integer)
 type Cells = HashMap (Dim, Point) Integer
+
+data Cache = Cache { currentDim :: Cells
+                   , prevDim :: Cells
+                   }
+                   deriving (Show, Eq)
 
 data Problem = Problem { serialNo :: Integer
                        , size :: Integer
@@ -34,50 +40,59 @@ data GridResult = GridResult { corner :: Point
 instance Ord GridResult where
     compare g1 g2 = compare (power g1) (power g2)
 
-gridPower :: Problem -> Cells -> Point -> (Cells, Power)
-gridPower pb@(Problem sn 1) cells pt = lookupOrCalculate pb cells pt (calculatePower sn cells)
-gridPower pb@(Problem sn sz) cells pt = lookupOrCalculate pb cells pt (recurLeadingEdge pb cells)
+newCache :: Cache
+newCache = Cache Map.empty Map.empty
 
-lookupOrCalculate :: Problem -> Cells -> Point -> (Point -> (Cells, Power)) -> (Cells, Power)
-lookupOrCalculate (Problem sn sz) cells pt calc = case Map.lookup ((sz, sz), pt) cells of
-                                                      Just power -> (cells, power)
-                                                      Nothing -> cachePower (sz, sz) pt $ calc pt
+cycleCache :: Cache -> Cache
+cycleCache (Cache current prev) = Cache Map.empty current
 
-calculatePower :: SerialNo -> Cells -> Point -> (Cells, Power)
-calculatePower sn cells (x, y) = (cells, hundredsDigit (nonsense sn x y) - 5)
+lookup :: (Dim, Point) -> Cache -> Power
+lookup key (Cache current prev) = fromJust $ Map.lookup key prev
+
+store :: (Dim, Point) -> Power -> Cache -> Cache
+store key power c = c { currentDim = Map.insert key power (currentDim c) }
+
+gridPower :: Problem -> Cache -> Point -> (Cache, Power)
+gridPower pb@(Problem sn 1) cache pt = (cache, calculatePower sn pt)
+gridPower pb@(Problem sn sz) cache pt = recurLeadingEdge pb cache pt
+
+calculatePower :: SerialNo -> Point -> Power
+calculatePower sn (x, y) = hundredsDigit (nonsense sn x y) - 5
   where nonsense sn x y = (((x + 10) * y) + sn) * (x + 10)
         hundredsDigit n = mod (div n 100) 10
 
-cachePower :: Dim -> Point -> (Cells, Power) -> (Cells, Power)
-cachePower dim pt (cells, pwr) = insertCache (dim, pt) cells &&& id $ pwr
-  where insertCache p cells = flip (Map.insert p) cells
-
-recurLeadingEdge :: Problem -> Cells -> Point -> (Cells, Power)
-recurLeadingEdge pb@(Problem sn sz) cells pt =
+recurLeadingEdge :: Problem -> Cache -> Point -> (Cache, Power)
+recurLeadingEdge pb@(Problem sn sz) cache pt =
   let
-    (cells', edgePower) = leadingEdge pb cells pt
+    (cache', edgePower) = leadingEdge pb cache pt
+    smallBlockPower = if sz - 1 == 1
+                        then calculatePower sn pt
+                        else lookup ((sz - 1, sz - 1), pt) cache'
+    totalPower = smallBlockPower + edgePower
   in
-    ( cells'
-    , (fromJust $ Map.lookup ((sz - 1, sz - 1), pt) cells') + edgePower
+    ( store ((sz, sz), pt) totalPower cache'
+    , totalPower
     )
-  where leadingEdge :: Problem -> Cells -> Point -> (Cells, Power)
-        leadingEdge (Problem sn sz) cells (x, y) =
+  where leadingEdge :: Problem -> Cache -> Point -> (Cache, Power)
+        leadingEdge (Problem sn sz) cache (x, y) =
           let
+            problem' = Problem sn (sz - 1)
             xMax = (x + sz - 1)
             yMax = (y + sz - 1)
             bottomEdgeKey = ((sz - 1, 1), (x, yMax))
-            bottomEdgePower = fromJust $ Map.lookup bottomEdgeKey cells
+            bottomEdgePower = edgePower problem' bottomEdgeKey cache
             forwardEdgeKey = ((1, sz - 1 ), (xMax, y))
-            forwardEdgePower = fromJust $ Map.lookup forwardEdgeKey cells
-            cornerKey = ((1, 1), (xMax, yMax))
-            cornerPower = fromJust $ Map.lookup cornerKey cells
-            cells' = Map.insert (first (first (+1)) bottomEdgeKey) (bottomEdgePower + cornerPower) $
-                     Map.insert (first (second (+1)) forwardEdgeKey) (forwardEdgePower + cornerPower) $
-                     cells
+            forwardEdgePower = edgePower problem' forwardEdgeKey cache
+            cornerPower = calculatePower sn (xMax, yMax)
+            cache' = store ((sz, 1), (x, yMax)) (bottomEdgePower + cornerPower) $
+                     store ((1, sz), (xMax, y)) (forwardEdgePower + cornerPower) cache
           in
-            ( cells'
+            ( cache'
             , bottomEdgePower + forwardEdgePower + cornerPower
             )
+        edgePower :: Problem -> (Dim, Point) -> Cache -> Power
+        edgePower (Problem sn sz) key@(_, pt) cache | sz == 1 = calculatePower sn pt
+                                                    | otherwise = lookup key cache
 
 corners :: Size -> [Point]
 corners sz =
@@ -90,38 +105,38 @@ sizes = [1..300]
 day11 :: SerialNo -> Point
 day11 sn =
     let
-      initial =  problemMax (Problem sn 1) Map.empty
-      (cells, _) = foldl' fillCells initial (Problem sn <$> [2, 3])
+      initial = problemMax (Problem sn 1) newCache
+      (cache, _) = foldl' fillCache initial (Problem sn <$> [2, 3])
     in
-      snd . fst $ maximumBy power $ filter threeByThree $ Map.toList cells
+      snd . fst $ maximumBy power $ filter threeByThree $ Map.toList (currentDim cache)
     where threeByThree = (== (3, 3)) . fst . fst
           power (_, p1) (_, p2) = compare p1 p2
-          fillCells (cells, _) pb = problemMax pb cells
+          fillCache (cache, _) pb = problemMax pb (cycleCache cache)
 
 day11p2 :: SerialNo -> (Size, Point)
 day11p2 sn =
     let
       problems = Problem sn <$> sizes
-      initial = problemMax (head problems) Map.empty
+      initial = problemMax (head problems) newCache
     in
       (gridSize &&& corner) $ snd $ foldl' maxPower initial (tail problems)
-  where maxPower :: (Cells, GridResult) -> Problem -> (Cells, GridResult)
-        maxPower (cells, gr) pb =
+  where maxPower :: (Cache, GridResult) -> Problem -> (Cache, GridResult)
+        maxPower (cache, gr) pb =
           let
-            (cells', gr') = problemMax pb cells
+            (cache', gr') = problemMax pb (cycleCache cache)
           in
-            (cells', max gr gr')
+            (cache', max gr gr')
 
-problemMax :: Problem -> Cells -> (Cells, GridResult)
-problemMax pb cells =
+problemMax :: Problem -> Cache -> (Cache, GridResult)
+problemMax pb cache =
     let
       initial = GridResult (1, 1) (size pb) <$>
-                gridPower pb cells (1, 1)
+                gridPower pb cache (1, 1)
     in
       foldl' (maxPower pb) initial (corners $ size pb)
-  where maxPower :: Problem -> (Cells, GridResult) -> Point -> (Cells, GridResult)
-        maxPower pb (cells, gr) pt =
+  where maxPower :: Problem -> (Cache, GridResult) -> Point -> (Cache, GridResult)
+        maxPower pb (cache, gr) pt =
           let
-            (cells', power) = gridPower pb cells pt
+            (cache', power) = gridPower pb cache pt
           in
-            (cells', max gr (GridResult pt (size pb) power))
+            (cache', max gr (GridResult pt (size pb) power))

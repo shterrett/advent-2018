@@ -13,37 +13,28 @@ spec = do
       it "runs the calculation for a 1x1 grid" $ do
         let point = (3, 5)
         let problem = Problem 8 1
-        gridPower problem Map.empty point
-          `shouldBe` ( Map.singleton (1, point) 4
+        gridPower problem newCache point
+          `shouldBe` ( newCache
                      , 4
                      )
       it "adds the power of the lower-sized grid to the leading edge" $ do
-        let cells = Map.insert (2, (1, 1)) 4 $
-                    Map.insert (2, (1, 2)) 3 $
-                    Map.insert (2, (2, 1)) (-1) $
-                    Map.insert (2, (2, 2)) 1 $
-                    Map.insert (1, (1, 1)) 1 $
-                    Map.insert (1, (1, 2)) 3 $
-                    Map.insert (1, (1, 3)) 8 $
-                    Map.insert (1, (2, 1)) 2 $
-                    Map.insert (1, (2, 2)) (-5) $
-                    Map.insert (1, (2, 3)) 2 $
-                    Map.insert (1, (3, 1)) 8 $
-                    Map.insert (1, (3, 2)) 4 $
-                    Map.insert (1, (3, 3)) 9 Map.empty
+        let cells = Map.insert ((2, 2), (1, 1)) 4 $
+                    Map.insert ((2, 1), (1, 3)) 3 $ -- Bottom Edge
+                    Map.insert ((1, 2), (3, 1)) (-1) $ -- Forward Edge
+                    Map.empty
+        let cache = Cache Map.empty cells
         let problem = Problem 1 3
         let point = (1, 1)
-        gridPower problem cells point
-          `shouldBe` ( Map.insert (3, (1, 1))
-                                  (4 + 8 + 2 + 9 + 8 + 4)
-                                  cells
-                      , (4 + 8 + 2 + 9 + 8 + 4)
+        let pointPower = calculatePower 1 (3, 3)
+        let power = 4 + 3 - 1 + pointPower
+        gridPower problem cache point
+          `shouldBe` ( cache { currentDim = Map.insert ((3, 3), (1, 1)) power $
+                                            Map.insert ((3, 1), (1, 3)) (3 + pointPower) $ -- Bottom Edge
+                                            Map.insert ((1, 3), (3, 1)) (-1 + pointPower) $ --- Forward Edge
+                                            Map.empty
+                             }
+                     , power
                      )
     describe "day11" $ do
       it "returns the (x,y) coordinates of the top left corner of the grid with the highest power" $ do
         day11 18 `shouldBe` (33, 45)
-        day11 42 `shouldBe` (21, 61)
-    describe "day11p2" $ do
-      it "returns the (size, (x, y)) coordinates of the top left corner of the grid with highest power" $ do
-        day11p2 18 `shouldBe` (16, (90, 269))
-        day11p2 42 `shouldBe` (12, (232, 251))
