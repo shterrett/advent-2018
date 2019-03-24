@@ -42,6 +42,8 @@ library
     , Day13
     , Day14
     , Day15
+    , Day16
+    , Day16Opcode
   other-modules:
       Paths_advent2018
   hs-source-dirs:
@@ -95,6 +97,8 @@ test-suite advent2018-test
     , Day14Spec
     , Day15Spec
     , Day15DijkstraSpec
+    , Day16Spec
+    , Day16OpcodeSpec
     , Paths_advent2018
   hs-source-dirs:
       test
@@ -109,4 +113,5 @@ test-suite advent2018-test
     , unordered-containers
     , containers
     , heap
+    , QuickCheck
   default-language: Haskell2010
