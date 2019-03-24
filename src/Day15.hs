@@ -13,8 +13,6 @@ import qualified Data.Heap as Heap
 import Data.Heap (MinHeap)
 import Control.Monad (foldM)
 import Control.Arrow ((&&&))
-import Debug.Trace
-import Data.List (sort)
 
 
 type Point = (Int, Int)
@@ -30,25 +28,11 @@ data Game =
          , bound :: Bound
          , goblins :: HashSet Point
          , elves :: HashSet Point
+         , elfAttk :: HP
          , corpses :: HashSet Point
          , cave :: HashMap Point Square
          }
          deriving (Show, Eq)
-
-debugPrintBoard :: Game -> String
-debugPrintBoard g =
-    let
-      ys = [0..(snd $ bound g)]
-      points = Map.toList (cave g)
-    in
-      unlines $
-      fmap show $
-      fmap (fmap (\(p, s) -> case s of
-                         Open -> '.'
-                         Wall -> '#'
-                         (Combatant _) -> if Set.member p (elves g) then 'E' else 'G'
-           )) $
-      fmap (\y -> sortBy (\a b -> compare (fst a) (fst b)) $ filter (\((_, y'), _) -> y == y') points) ys
 
 insertSquare :: Point -> Square -> Game -> Game
 insertSquare p s g = g { cave = Map.insert p s (cave g) }
@@ -59,6 +43,9 @@ insertElf p g = g { elves = Set.insert p (elves g) }
 insertGoblin :: Point -> Game -> Game
 insertGoblin p g = g { goblins = Set.insert p (goblins g) }
 
+isElf :: Game -> Point -> Bool
+isElf g p = Set.member p $ elves g
+
 updatePlayer :: Point -> Point -> Game -> Game
 updatePlayer p p' g =
     let
@@ -66,7 +53,7 @@ updatePlayer p p' g =
       g' = insertSquare p Open $
            insertSquare p' s g
     in
-      if Set.member p (elves g')
+      if isElf g p
         then insertElf p' $ g' { elves = Set.delete p (elves g') }
         else insertGoblin p' $ g' { goblins = Set.delete p (goblins g') }
 
@@ -74,7 +61,14 @@ lookupSquare :: Point -> Game -> Square
 lookupSquare p g = fromJust $ Map.lookup p (cave g)
 
 emptyGame :: Point -> Game
-emptyGame b = Game 0 b Set.empty Set.empty Set.empty Map.empty
+emptyGame b = Game { Day15.round = 0
+                   , bound = b
+                   , goblins = Set.empty
+                   , elves = Set.empty
+                   , elfAttk = 3
+                   , corpses = Set.empty
+                   , cave = Map.empty
+                   }
 
 labelPoints :: [[a]] -> [((Int, Int), a)]
 labelPoints rs = concat $ labelRow <$> zip [0, 1..] rs
@@ -116,7 +110,7 @@ containsEnemy es ps = filter ((flip Set.member) es) ps
 
 enemies :: Point -> Game -> HashSet Point
 enemies p g =
-    if (Set.member p (elves g))
+    if isElf g p
       then goblins g
       else elves g
 
@@ -139,17 +133,18 @@ combatantHP :: HashMap Point Square -> Point -> Int
 combatantHP c p = case Map.lookup p c of
                     Just (Combatant hp) -> hp
 
-attack :: Point -> Game -> Game
-attack p g =
+attack :: HP -> Point -> Game -> Game
+attack v p g =
     let
       (Combatant hp) = lookupSquare p g
+      hp' = hp - v
     in
-      if hp > 3
-        then woundCombatant p hp g
+      if hp' > 0
+        then woundCombatant p hp' g
         else killCombatant p g
   where woundCombatant :: Point -> HP -> Game -> Game
         woundCombatant p hp g = g {
-          cave = Map.insert p (Combatant $ hp - 3) (cave g)
+          cave = Map.insert p (Combatant hp) (cave g)
         }
         killCombatant :: Point -> Game -> Game
         killCombatant p g = g {
@@ -200,11 +195,10 @@ takeStep' p g =
 attackTarget :: (Point, Game) -> Game
 attackTarget (p, g) = case target p g of
                         Nothing -> g
-                        (Just t) -> attack t g
-
-debugHp :: Square -> Int
-debugHp Open = 0
-debugHp (Combatant hp) = hp
+                        (Just t) -> attack (attackValue p g) t g
+  where attackValue p g = if (Set.member p $ elves g)
+                            then elfAttk g
+                            else 3
 
 playRound :: Game -> Either Game Game
 playRound g =
@@ -250,8 +244,23 @@ day15 input =
     in
       T.pack $ show $ score final
 
-debugCombatants :: Game -> [(Point, Maybe Square)]
-debugCombatants g = zip (combatants g) (fmap ((flip Map.lookup) (cave g)) (combatants g))
+makeAllElvesLive :: Game -> Game
+makeAllElvesLive initial =
+    let
+      final = playGame initial
+    in
+      if elfDied initial final
+        then makeAllElvesLive $ incAttack initial
+        else final
+  where elfDied initial final  = Set.size (elves final) < Set.size (elves initial)
+        incAttack g = g { elfAttk = 1 + (elfAttk g) }
+
+day15p2 :: [T.Text] -> T.Text
+day15p2 input =
+    let
+      final = makeAllElvesLive $ initGame (T.unpack <$> input)
+    in
+      T.pack $ show $ score final
 
 --------------------------------------------------------------------------------
 -- Dijkstra Implementation

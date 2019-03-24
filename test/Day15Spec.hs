@@ -35,6 +35,7 @@ spec = do
                                           (7, 5)
                                           (Set.fromList goblinLocs)
                                           (Set.fromList elfLocs)
+                                          3
                                           Set.empty
                                           board)
     describe "attacking" $ do
@@ -43,12 +44,14 @@ spec = do
                         (1, 1)
                         Set.empty
                         (Set.singleton (1, 1))
+                        3
                         Set.empty
                         (Map.singleton (1, 1) (Combatant 200))
-        attack (1, 1) game `shouldBe` (Game 0
+        attack 3 (1, 1) game `shouldBe` (Game 0
                                             (1, 1)
                                             Set.empty
                                             (Set.singleton (1, 1))
+                                            3
                                             Set.empty
                                             (Map.singleton (1, 1) (Combatant 197)))
       it "removes a piece from the board if the HP reaches 0" $ do
@@ -56,12 +59,14 @@ spec = do
                         (1, 1)
                         (Set.singleton (1, 1))
                         (Set.singleton (2, 1))
+                        3
                         Set.empty
                         (Map.singleton (1, 1) (Combatant 3))
-        attack (1, 1) game `shouldBe` (Game 0
+        attack 3 (1, 1) game `shouldBe` (Game 0
                                             (1, 1)
                                             Set.empty
                                             (Set.singleton (2, 1))
+                                            3
                                             (Set.singleton (1, 1))
                                             (Map.singleton (1, 1) Open))
       it "removes a piece from the board if the HP drops below 0" $ do
@@ -69,12 +74,14 @@ spec = do
                         (1, 1)
                         (Set.singleton (1, 1))
                         Set.empty
+                        3
                         Set.empty
                         (Map.singleton (1, 1) (Combatant 1))
-        attack (1, 1) game `shouldBe` (Game 0
+        attack 3 (1, 1) game `shouldBe` (Game 0
                                             (1, 1)
                                             Set.empty
                                             Set.empty
+                                            3
                                             (Set.singleton (1, 1))
                                             (Map.singleton (1, 1) Open))
     describe "choosePoint" $ do
@@ -91,6 +98,7 @@ spec = do
                         (3, 3)
                         (Set.fromList [(2, 1), (1, 2)])
                         (Set.fromList [(2, 2)])
+                        3
                         Set.empty
                         (Map.fromList [ ((2, 1), Combatant 200)
                                       , ((1, 2), Combatant 200)
@@ -104,6 +112,7 @@ spec = do
                         (3, 3)
                         (Set.fromList [(2, 1), (1, 2)])
                         (Set.fromList [(2, 2)])
+                        3
                         Set.empty
                         (Map.fromList [ ((2, 1), Combatant 100)
                                       , ((1, 2), Combatant 50)
@@ -115,6 +124,7 @@ spec = do
                         (3, 3)
                         (Set.fromList [(2, 1), (1, 2), (3, 2)])
                         (Set.fromList [(2, 2)])
+                        3
                         Set.empty
                         (Map.fromList [ ((2, 1), Combatant 100)
                                       , ((1, 2), Combatant 50)
@@ -600,3 +610,34 @@ spec = do
                                      }
         playGame startingGame `shouldBe` endingGame'
         score endingGame' `shouldBe` 18740
+    describe "guarantee elf win" $ do
+      it "correctly plays through game 1" $ do
+        let startingCave = [ "#######"
+                          , "#.G...#"
+                          , "#...EG#"
+                          , "#.#.#G#"
+                          , "#..G#E#"
+                          , "#.....#"
+                          , "#######"
+                          ]
+
+        let startingGame = initGame startingCave
+
+        let endingCave = [ "#######"
+                        , "#..E..#"
+                        , "#...E.#"
+                        , "#.#.#.#"
+                        , "#...#.#"
+                        , "#.....#"
+                        , "#######"
+                        ]
+        let endingGame = initGame endingCave
+        let endingGame' = endingGame { Day15.round = 30
+                                     , cave = Map.insert (3, 1) (Combatant 158) $
+                                              Map.insert (4, 2) (Combatant 14) $
+                                              (cave endingGame)
+                                     , elfAttk = 15
+                                     , corpses = Set.singleton (3, 2)
+                                     }
+        makeAllElvesLive startingGame `shouldBe` endingGame'
+        score endingGame' `shouldBe` 4988
