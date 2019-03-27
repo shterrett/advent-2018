@@ -59,6 +59,7 @@ library
     , time
     , heap
     , mtl
+    , split
   default-language: Haskell2010
 
 executable advent2018-exe

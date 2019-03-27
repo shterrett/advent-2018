@@ -58,33 +58,6 @@ propExecuteRegFail a b c r (BinOp op) =
         then isJust result
         else isNothing result
 
-propExecuteVal :: Int ->
-                  Int ->
-                  RegisterIdx ->
-                  Register ->
-                  BinOp ->
-                  Bool
-propExecuteVal a b c r (BinOp op) =
-    let
-      result = executeImmediate op a b (getIdx c) r
-      expected = Just $ put r (op a b) c
-    in
-      result == expected
-
-propExecuteValFail :: Int ->
-                      Int ->
-                      Int ->
-                      Register ->
-                      BinOp ->
-                      Bool
-propExecuteValFail a b c r (BinOp op) =
-    let
-      result = executeImmediate op a b c r
-    in
-      if inRange c
-        then isJust result
-        else isNothing result
-
 propExecuteRI :: RegisterIdx ->
                  Int ->
                  RegisterIdx ->
@@ -193,9 +166,7 @@ spec :: Spec
 spec = do
     describe "opcodes" $ do
       prop "executes register operations" $ propExecuteReg
-      prop "executes value operations" $ propExecuteVal
       prop "fails when any register is out of range" $ propExecuteRegFail
-      prop "fails when the destination register is out of range" $ propExecuteValFail
       prop "executes mixed register/value operation" $ propExecuteRI
       prop "executes mixed value/reigster operation" $ propExecuteIR
       prop "fails when a register is out of range" $ propExecuteRIFail
