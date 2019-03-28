@@ -119,7 +119,7 @@ propSetR :: RegisterIdx ->
             Bool
 propSetR a b c r =
     let
-      result = setr (getIdx a) b (getIdx c) r
+      result = (fn setr) (getIdx a) b (getIdx c) r
       expected = Just $ put r (fetch r a) c
     in
       result == expected
@@ -131,7 +131,7 @@ propSetI :: Int ->
             Bool
 propSetI a b c r =
     let
-      result = seti a b (getIdx c) r
+      result = (fn seti) a b (getIdx c) r
       expected = Just $ put r a c
     in
       result == expected
@@ -143,7 +143,7 @@ propSetRFail :: Int ->
                 Bool
 propSetRFail a b c r =
     let
-      result = setr a b c r
+      result = (fn setr) a b c r
     in
       if all inRange [a, c]
         then isJust result
@@ -156,7 +156,7 @@ propSetIFail :: Int ->
                 Bool
 propSetIFail a b c r =
     let
-      result = seti a b c r
+      result = (fn seti) a b c r
     in
       if 0 <= c && c <= 3
         then isJust result

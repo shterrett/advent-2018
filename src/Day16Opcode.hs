@@ -3,7 +3,9 @@ module Day16Opcode ( Register
                    , RegisterIdx
                    , mkRegisterIdx
                    , getIdx
-                   , OpCode
+                   , OpFn
+                   , OpName
+                   , OpCode (fn, name)
                    , fetchAt
                    , fetch
                    , putAt
@@ -31,6 +33,7 @@ module Day16Opcode ( Register
                    ) where
 
 import Data.Bits ((.&.), (.|.))
+import Data.Hashable (Hashable, hashWithSalt)
 
 data Register = Register Int Int Int Int
               deriving (Show, Eq)
@@ -64,7 +67,22 @@ fetchAt r i = fetch r <$> mkRegisterIdx i
 putAt :: Register -> Int -> Int -> Maybe Register
 putAt r idx val = put r val <$> mkRegisterIdx idx
 
-type OpCode = Int -> Int -> Int -> Register -> Maybe Register
+type OpFn = Int -> Int -> Int -> Register -> Maybe Register
+type OpName = String
+data OpCode = OpCode { name  :: OpName
+                     , fn :: OpFn
+                     }
+instance Ord OpCode where
+    compare o1 o2 = compare (name o1) (name o2)
+
+instance Hashable OpCode where
+    hashWithSalt i o = hashWithSalt i (name o)
+
+instance Eq OpCode where
+    (==) o1 o2 = (name o1) == (name o2)
+
+instance Show OpCode where
+    show = show . name
 
 executeRegister :: (Int -> Int -> Int) ->
                     Int ->
@@ -90,22 +108,22 @@ executeIR :: (Int -> Int -> Int) ->
              Maybe Register
 executeIR op a b c r = op <$> return a <*> fetchAt r b >>= putAt r c
 
-addr = executeRegister (+)
-addi = executeRI (+)
-mulr = executeRegister (*)
-muli = executeRI (*)
-borr = executeRegister (.|.)
-bori = executeRI (.|.)
-banr = executeRegister (.&.)
-bani = executeRI (.&.)
-gtrr = executeRegister gt
-gtri = executeRI gt
-gtir = executeIR gt
-eqrr = executeRegister eq
-eqri = executeRI eq
-eqir = executeIR eq
-setr a b c r = (fetchAt r a) >>= putAt r c
-seti a b c r = putAt r c a
+addr = OpCode "addr" (executeRegister (+))
+addi = OpCode "addi" (executeRI (+))
+mulr = OpCode "mulr" (executeRegister (*))
+muli = OpCode "muli" (executeRI (*))
+borr = OpCode "borr" (executeRegister (.|.))
+bori = OpCode "bori" (executeRI (.|.))
+banr = OpCode "banr" (executeRegister (.&.))
+bani = OpCode "bani" (executeRI (.&.))
+gtrr = OpCode "gtrr" (executeRegister gt)
+gtri = OpCode "gtri" (executeRI gt)
+gtir = OpCode "gtir" (executeIR gt)
+eqrr = OpCode "eqrr" (executeRegister eq)
+eqri = OpCode "eqri" (executeRI eq)
+eqir = OpCode "eqir" (executeIR eq)
+setr = OpCode "setr" (\a b c r -> (fetchAt r a) >>= putAt r c)
+seti = OpCode "seti" (\a b c r -> putAt r c a)
 
 gt a b = if a > b then 1 else 0
 eq a b = if a == b then 1 else 0

@@ -3,6 +3,9 @@
 module Day16Spec where
 
 import Test.Hspec
+import Data.Maybe (fromJust)
+import qualified Data.HashMap.Strict as Map
+import qualified Data.HashSet as Set
 import Day16Opcode
 import Day16
 import Text.Parsec (parse)
@@ -44,3 +47,41 @@ spec = do
                           9
                           (2, 1, 2)
         countOpcodes event `shouldBe` 3
+    describe "successful opcodes" $ do
+      it "returns a list of the names of the opcodes that give the proper result" $ do
+        let event = Event (mkRegister 3 2 1 1)
+                          (mkRegister 3 2 2 1)
+                          9
+                          (2, 1, 2)
+        (name <$> successfulOpcodes event) `shouldBe` ["addi", "mulr", "seti"]
+    describe "winnowing opcodes" $ do
+      it "finds the common opcode for multiple events with the same operation" $ do
+        let events = [ Event (mkRegister 3 2 1 1)
+                             (mkRegister 3 2 2 1)
+                             9
+                             (2, 1, 2)
+                     , Event (mkRegister 3 2 1 1)
+                             (mkRegister 3 2 4 1)
+                             9
+                             (4, 1, 2)
+                     ]
+        (name $
+          head $
+          Set.toList $
+          fromJust $
+          Map.lookup 9 $
+          winnowOpcodes events
+          ) `shouldBe` "seti"
+    describe "opcodeMapping" $ do
+      it "correctly assigns each opcode number to a particular opcode" $ do
+        let winnowed = Map.fromList [ (0, Set.fromList [addr, mulr, muli])
+                                    , (1, Set.fromList [muli])
+                                    , (2, Set.fromList [addr, muli])
+                                    , (3, Set.fromList [addi, mulr])
+                                    ]
+        let opMap = Map.fromList [ (0, mulr)
+                                 , (1, muli)
+                                 , (2, addr)
+                                 , (3, addi)
+                                 ]
+        opcodeMapping winnowed `shouldBe` opMap
